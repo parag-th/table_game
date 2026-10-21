@@ -378,6 +378,7 @@
   }
   function saveNumber(key, value) {
     try { localStorage.setItem(key, String(value)); } catch (e) { /* unavailable */ }
+    if (window.cloudSave) window.cloudSave();
   }
 
   // Best time is stored per range (e.g. "12-19"), because a smaller range has fewer questions.
@@ -391,6 +392,7 @@
   }
   function saveTimeRecords(obj) {
     try { localStorage.setItem(BEST_TIME_KEY, JSON.stringify(obj)); } catch (e) { /* unavailable */ }
+    if (window.cloudSave) window.cloudSave();
   }
   function formatTime(ms) {
     if (!ms || ms <= 0) return "\u2013";
@@ -710,8 +712,186 @@
   endBtn.addEventListener("click", function () { endGame(false); });
   answerForm.addEventListener("submit", handleSubmit);
 
+  // Lets the Firebase sync code refresh the game after cloud data is loaded.
+  window.timesTablesGame = {
+    reload: function () {
+      highScore = loadNumber(STORAGE_KEY);
+      bestStreak = loadNumber(STREAK_KEY);
+      bestCorrect = loadNumber(CORRECT_KEY);
+      refreshStartStats();
+    }
+  };
+
   refreshStartStats();
 })();
+</script>
+
+<!-- ===== Firebase cloud sync ===== -->
+<div id="syncBox" style="position:fixed;right:12px;bottom:12px;z-index:50;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;max-width:92vw;font:12px/1.2 system-ui,sans-serif;color:#b9b4e6;background:rgba(10,8,40,.9);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px 10px;">
+  <span id="syncStatus">Cloud: connecting…</span>
+  <button id="googleBtn" type="button" style="display:none;cursor:pointer;font:inherit;color:#fff;background:#2a2670;border:1px solid rgba(255,255,255,.25);border-radius:6px;padding:4px 8px;">Sign in with Google</button>
+  <button id="importBtn" type="button" style="cursor:pointer;font:inherit;color:#fff;background:#2a2670;border:1px solid rgba(255,255,255,.25);border-radius:6px;padding:4px 8px;">Import backup</button>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider,
+           linkWithPopup, signInWithCredential } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDpzt9Ilh6zo0LMAnJH6mGsST7rMhztZX0",
+    authDomain: "table-game-8de2c.firebaseapp.com",
+    projectId: "table-game-8de2c",
+    storageBucket: "table-game-8de2c.firebasestorage.app",
+    messagingSenderId: "75502869920",
+    appId: "1:75502869920:web:0df31fbe590f02ece698c5",
+    measurementId: "G-JMGJXTB67D"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  // localStorage keys used by the game
+  const K = {
+    highScore:   "timesTablesHighScore_12_19",
+    bestStreak:  "timesTablesBestStreak_12_19",
+    bestCorrect: "timesTablesBestCorrect_12_19",
+    bestTimes:   "timesTablesBestTime_12_19"
+  };
+
+  const statusEl = document.getElementById("syncStatus");
+  const googleBtn = document.getElementById("googleBtn");
+  const importBtn = document.getElementById("importBtn");
+  let currentUser = null;
+  let ready = false; // true once the first cloud merge has finished
+
+  function num(v) { const n = parseInt(v, 10); return Number.isFinite(n) ? n : 0; }
+
+  function readLocal() {
+    let times = {};
+    try { times = JSON.parse(localStorage.getItem(K.bestTimes) || "{}") || {}; } catch (e) {}
+    return {
+      highScore:   num(localStorage.getItem(K.highScore)),
+      bestStreak:  num(localStorage.getItem(K.bestStreak)),
+      bestCorrect: num(localStorage.getItem(K.bestCorrect)),
+      bestTimes:   times
+    };
+  }
+
+  function writeLocal(d) {
+    localStorage.setItem(K.highScore,   String(d.highScore));
+    localStorage.setItem(K.bestStreak,  String(d.bestStreak));
+    localStorage.setItem(K.bestCorrect, String(d.bestCorrect));
+    localStorage.setItem(K.bestTimes,   JSON.stringify(d.bestTimes));
+  }
+
+  // Keep the best of both sides: higher numbers win; for times, fewer incorrect wins, then faster.
+  function merge(a, b) {
+    a = a || {}; b = b || {};
+    const out = {
+      highScore:   Math.max(num(a.highScore),   num(b.highScore)),
+      bestStreak:  Math.max(num(a.bestStreak),  num(b.bestStreak)),
+      bestCorrect: Math.max(num(a.bestCorrect), num(b.bestCorrect)),
+      bestTimes:   {}
+    };
+    const ta = a.bestTimes || {}, tb = b.bestTimes || {};
+    new Set([...Object.keys(ta), ...Object.keys(tb)]).forEach(function (range) {
+      const x = ta[range], y = tb[range];
+      if (!x) out.bestTimes[range] = y;
+      else if (!y) out.bestTimes[range] = x;
+      else if (x.incorrect !== y.incorrect) out.bestTimes[range] = x.incorrect < y.incorrect ? x : y;
+      else out.bestTimes[range] = x.ms <= y.ms ? x : y;
+    });
+    return out;
+  }
+
+  function refreshButtons() {
+    googleBtn.style.display = currentUser && currentUser.isAnonymous ? "inline-block" : "none";
+    statusEl.textContent = !currentUser ? "Cloud: offline"
+      : currentUser.isAnonymous ? "Cloud: synced (this browser only)"
+      : "Cloud: synced (" + (currentUser.email || "Google") + ")";
+  }
+
+  async function pushToCloud() {
+    if (!currentUser || !ready) return;
+    try {
+      await setDoc(doc(db, "users", currentUser.uid),
+        { ...readLocal(), updatedAt: serverTimestamp() }, { merge: true });
+    } catch (e) { console.error("Cloud save failed", e); statusEl.textContent = "Cloud: save failed"; }
+  }
+
+  // The game calls this after every save (debounced so we don't spam Firestore).
+  let timer = null;
+  window.cloudSave = function () { clearTimeout(timer); timer = setTimeout(pushToCloud, 500); };
+
+  async function syncDown(user) {
+    ready = false;
+    try {
+      const snap = await getDoc(doc(db, "users", user.uid));
+      const merged = merge(readLocal(), snap.exists() ? snap.data() : {});
+      writeLocal(merged);
+      window.timesTablesGame && window.timesTablesGame.reload();
+      ready = true;
+      await pushToCloud();
+    } catch (e) {
+      console.error("Cloud sync failed", e);
+      statusEl.textContent = "Cloud: sync failed (see console)";
+      return;
+    }
+    refreshButtons();
+  }
+
+  onAuthStateChanged(auth, function (user) {
+    currentUser = user;
+    if (user) { refreshButtons(); syncDown(user); } else { refreshButtons(); }
+  });
+  signInAnonymously(auth).catch(function (e) {
+    console.error("Anonymous sign-in failed", e);
+    statusEl.textContent = "Cloud: sign-in failed (see console)";
+  });
+
+  // Upgrade the anonymous account to Google so scores follow you across devices/browsers.
+  googleBtn.addEventListener("click", async function () {
+    const provider = new GoogleAuthProvider();
+    try {
+      await linkWithPopup(auth.currentUser, provider);
+      currentUser = auth.currentUser;
+      refreshButtons();
+    } catch (e) {
+      if (e.code === "auth/credential-already-in-use") {
+        // This Google account already has saved data: switch to it (local scores get merged in).
+        await signInWithCredential(auth, GoogleAuthProvider.credentialFromError(e));
+      } else {
+        console.error(e);
+        alert("Google sign-in failed: " + (e.code || e.message));
+      }
+    }
+  });
+
+  // One-time import of the JSON you copied from the old file:// version.
+  importBtn.addEventListener("click", function () {
+    const text = prompt("Paste the JSON exported from your old localStorage:");
+    if (!text) return;
+    try {
+      const old = JSON.parse(text);
+      let times = {};
+      try { times = JSON.parse(old[K.bestTimes] || "{}") || {}; } catch (e) {}
+      const imported = {
+        highScore:   num(old[K.highScore]),
+        bestStreak:  num(old[K.bestStreak]),
+        bestCorrect: num(old[K.bestCorrect]),
+        bestTimes:   times
+      };
+      writeLocal(merge(readLocal(), imported));
+      window.timesTablesGame && window.timesTablesGame.reload();
+      pushToCloud();
+      alert("Imported! Your old scores are now saved.");
+    } catch (e) {
+      alert("That doesn't look like valid JSON. Copy the full console output and try again.");
+    }
+  });
 </script>
 
 </body>
