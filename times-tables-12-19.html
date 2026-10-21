@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Times Tables · 12–19</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    box-sizing: border-box;
+    --bg: #14123a;
+    --bg-deep: #0d0c28;
+    --panel: #1d1a52;
+    --panel-line: #34306f;
+    --ink: #f4f2ff;
+    --muted: #a8a4d6;
+    --accent: #ffb238;
+    --accent-ink: #1d1a52;
+    --good: #4fd8a8;
+    --bad: #ff6f7d;
+    --font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
+    --font-body: 'Inter', 'Segoe UI', sans-serif;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14123a; --bg-deep: #0d0c28; --panel: #1d1a52;
+      --panel-line: #34306f; --ink: #f4f2ff; --muted: #a8a4d6;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14123a; --bg-deep: #0d0c28; --panel: #1d1a52;
+    --panel-line: #34306f; --ink: #f4f2ff; --muted: #a8a4d6;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); height: 100%; }
+  * { box-sizing: border-box; }
+  body {
+    height: 100%; margin: 0; background: var(--bg);
+    background-image: radial-gradient(circle at 1px 1px, var(--panel-line) 1px, transparent 1px);
+    background-size: 28px 28px;
+    color: var(--ink); font-family: var(--font-body);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px; overflow-x: hidden;
+  }
+  .stage { width: 100%; max-width: 480px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--panel-line);
+    border-radius: 20px; padding: 32px 28px; position: relative; overflow: hidden;
+  }
+  .card::before {
+    content: ""; position: absolute; top: -60px; right: -60px;
+    width: 160px; height: 160px; background: var(--accent); opacity: 0.12;
+    border-radius: 40%; transform: rotate(18deg); pointer-events: none;
+  }
+
+  /* ---------- Start screen ---------- */
+  .start-view h1 {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: clamp(28px, 6vw, 36px); line-height: 1.15; margin: 0 0 6px;
+  }
+  .start-view .range { color: var(--accent); }
+  .start-view p.lede {
+    color: var(--muted); font-size: 15px; line-height: 1.55;
+    margin: 0 0 24px; max-width: 34ch;
+  }
+
+  .stat-row { display: flex; gap: 12px; margin-bottom: 26px; }
+  .stat-box {
+    flex: 1; background: var(--bg-deep); border: 1px solid var(--panel-line);
+    border-radius: 14px; padding: 14px 16px;
+  }
+  .stat-box .stat-label { color: var(--muted); font-size: 12.5px; letter-spacing: 0.01em; }
+  .stat-box .stat-value { font-family: var(--font-display); font-size: 24px; font-weight: 600; margin-top: 2px; }
+
+  /* ---------- Range slider ---------- */
+  .slider-section { margin-bottom: 26px; }
+  .slider-heading {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 14px;
+  }
+  .slider-heading .label { color: var(--muted); font-size: 13px; }
+  .slider-heading .value {
+    font-family: var(--font-display); font-size: 17px; font-weight: 600;
+  }
+  .slider-heading .value .accent-num { color: var(--accent); }
+
+  .range-slider { position: relative; height: 28px; margin: 0 6px 6px; }
+  .range-track {
+    position: absolute; top: 12px; left: 0; right: 0; height: 4px;
+    background: var(--panel-line); border-radius: 2px;
+  }
+  .range-track-fill {
+    position: absolute; top: 12px; height: 4px; background: var(--accent); border-radius: 2px;
+  }
+  .range-slider input[type="range"] {
+    position: absolute; top: 0; left: 0; width: 100%; margin: 0;
+    -webkit-appearance: none; appearance: none; background: transparent; pointer-events: none;
+  }
+  .range-slider input[type="range"]::-webkit-slider-runnable-track { background: transparent; }
+  .range-slider input[type="range"]::-moz-range-track { background: transparent; border: none; }
+  .range-slider input[type="range"]::-webkit-slider-thumb {
+    pointer-events: auto; -webkit-appearance: none; appearance: none;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--accent); border: 3px solid var(--panel);
+    cursor: pointer; margin-top: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .range-slider input[type="range"]::-moz-range-thumb {
+    pointer-events: auto; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--accent); border: 3px solid var(--panel); cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .range-slider input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--ink); }
+
+  .tick-row {
+    display: flex; justify-content: space-between; color: var(--muted);
+    font-size: 11px; margin: 6px 2px 0;
+  }
+
+  .question-count { color: var(--muted); font-size: 13px; margin-top: 12px; }
+  .question-count b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- Difficulty selector ---------- */
+  .difficulty-section { margin-bottom: 26px; }
+  .difficulty-section .label { color: var(--muted); font-size: 13px; margin-bottom: 10px; display: block; }
+  .difficulty-row { display: flex; gap: 8px; }
+  .difficulty-btn {
+    flex: 1; background: var(--bg-deep); border: 1.5px solid var(--panel-line);
+    border-radius: 12px; padding: 10px 6px; text-align: center;
+    color: var(--muted); transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+  }
+  .difficulty-btn .diff-name {
+    display: block; font-family: var(--font-display); font-size: 14.5px; font-weight: 600; color: var(--ink);
+  }
+  .difficulty-btn .diff-time { display: block; font-size: 12px; margin-top: 2px; }
+  .difficulty-btn.active {
+    border-color: var(--accent); background: rgba(255, 178, 56, 0.12); color: var(--accent);
+  }
+  .difficulty-btn:focus-visible { outline: 2px solid var(--accent); }
+
+  button { font-family: var(--font-body); cursor: pointer; border: none; outline-offset: 3px; }
+
+  .btn-primary {
+    width: 100%; background: var(--accent); color: var(--accent-ink);
+    font-weight: 600; font-size: 17px; padding: 16px; border-radius: 14px;
+    transition: transform 120ms ease, filter 120ms ease;
+  }
+  .btn-primary:hover { filter: brightness(1.06); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:focus-visible { outline: 2px solid var(--ink); }
+  .btn-primary:disabled { opacity: 0.45; cursor: default; }
+
+  /* ---------- Game screen ---------- */
+  .game-view { display: none; }
+  .game-view.active { display: block; }
+  .start-view.hidden { display: none; }
+
+  .top-bar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+  .metric .metric-label { color: var(--muted); font-size: 12px; }
+  .metric .metric-value { font-family: var(--font-display); font-size: 26px; font-weight: 600; }
+  .metric.right { text-align: right; }
+
+  .timer-track {
+    height: 6px; background: var(--bg-deep); border-radius: 3px; overflow: hidden; margin-bottom: 22px;
+  }
+  .timer-fill {
+    height: 100%; width: 100%; background: var(--accent); border-radius: 3px;
+    transition: width 100ms linear, background-color 200ms ease;
+  }
+  .timer-fill.urgent { background: var(--bad); }
+
+  .streak-line { color: var(--muted); font-size: 13px; margin: 0 0 18px; min-height: 18px; }
+  .streak-line b { color: var(--accent); font-weight: 600; }
+
+  .equation {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: clamp(40px, 11vw, 56px); text-align: center; margin: 6px 0 24px; letter-spacing: 0.01em;
+  }
+  .equation .op { color: var(--accent); margin: 0 10px; }
+
+  form.answer-form { display: flex; gap: 10px; }
+  input[type="number"] {
+    flex: 1; min-width: 0; background: var(--bg-deep); border: 1.5px solid var(--panel-line);
+    border-radius: 14px; color: var(--ink); font-family: var(--font-display);
+    font-size: 22px; text-align: center; padding: 14px 10px; -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"]:focus { outline: none; border-color: var(--accent); }
+
+  .btn-check {
+    background: var(--ink); color: var(--bg-deep); font-weight: 600;
+    font-size: 16px; padding: 0 22px; border-radius: 14px;
+  }
+  .btn-check:focus-visible { outline: 2px solid var(--accent); }
+  .btn-check:disabled { opacity: 0.5; cursor: default; }
+
+  .feedback { min-height: 30px; margin-top: 18px; font-size: 15px; font-weight: 500; text-align: center; }
+  .feedback.correct { color: var(--good); }
+  .feedback.incorrect { color: var(--bad); }
+
+  .end-row { margin-top: 22px; text-align: center; }
+  .link-btn {
+    background: none; color: var(--muted); font-size: 13.5px;
+    text-decoration: underline; text-underline-offset: 3px; padding: 6px;
+  }
+  .link-btn:hover { color: var(--ink); }
+
+  /* ---------- Summary screen ---------- */
+  .summary-view { display: none; }
+  .summary-view.active { display: block; }
+  .summary-view h2 { font-family: var(--font-display); font-size: 26px; margin: 0 0 4px; }
+  .summary-view .summary-sub { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
+  .summary-view .new-best {
+    display: inline-block; color: var(--accent-ink); background: var(--accent);
+    font-size: 12.5px; font-weight: 600; padding: 3px 10px; border-radius: 100px; margin-bottom: 16px;
+  }
+  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .stat-box .stat-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .summary-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0 24px; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .card { animation: rise 320ms ease; }
+    @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="card">
+
+    <!-- START SCREEN -->
+    <div class="start-view" id="startView">
+      <h1>Times tables,<br><span class="range">your range</span></h1>
+      <p class="lede">Random questions, no repeats until every combination in range has come up. Five seconds per answer.</p>
+
+      <div class="stat-row">
+        <div class="stat-box">
+          <div class="stat-label">High score</div>
+          <div class="stat-value" id="highScoreDisplay">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Best streak</div>
+          <div class="stat-value" id="highStreakDisplay">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Best correct</div>
+          <div class="stat-value" id="highCorrectDisplay">0</div>
+        </div>
+      </div>
+
+      <div class="slider-section">
+        <div class="slider-heading">
+          <span class="label">Table range</span>
+          <span class="value"><span class="accent-num" id="rangeMinLabel">12</span> – <span class="accent-num" id="rangeMaxLabel">19</span></span>
+        </div>
+        <div class="range-slider">
+          <div class="range-track"></div>
+          <div class="range-track-fill" id="rangeTrackFill"></div>
+          <input type="range" id="minRange" min="12" max="19" step="1" value="12" aria-label="Lowest table">
+          <input type="range" id="maxRange" min="12" max="19" step="1" value="19" aria-label="Highest table">
+        </div>
+        <div class="tick-row"><span>12</span><span>19</span></div>
+        <div class="question-count" id="questionCount">80 questions in this round</div>
+      </div>
+
+      <div class="difficulty-section">
+        <span class="label">Difficulty</span>
+        <div class="difficulty-row" id="difficultyRow">
+          <button type="button" class="difficulty-btn" data-seconds="15">
+            <span class="diff-name">Easy</span><span class="diff-time">15s</span>
+          </button>
+          <button type="button" class="difficulty-btn active" data-seconds="10">
+            <span class="diff-name">Medium</span><span class="diff-time">10s</span>
+          </button>
+          <button type="button" class="difficulty-btn" data-seconds="5">
+            <span class="diff-name">Hard</span><span class="diff-time">5s</span>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="startBtn">Start</button>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div class="game-view" id="gameView">
+      <div class="top-bar">
+        <div class="metric">
+          <div class="metric-label">Score</div>
+          <div class="metric-value" id="scoreDisplay">0</div>
+        </div>
+        <div class="metric right">
+          <div class="metric-label">High score</div>
+          <div class="metric-value" id="liveHighScore">0</div>
+        </div>
+      </div>
+
+      <div class="timer-track"><div class="timer-fill" id="timerFill"></div></div>
+
+      <div class="streak-line" id="streakLine">&nbsp;</div>
+
+      <div class="equation" id="equationDisplay">12<span class="op">×</span>8</div>
+
+      <form class="answer-form" id="answerForm" autocomplete="off">
+        <input type="number" id="answerInput" inputmode="numeric" placeholder="?" aria-label="Your answer" required>
+        <button type="submit" class="btn-check" id="checkBtn">Check</button>
+      </form>
+
+      <div class="feedback" id="feedback">&nbsp;</div>
+
+      <div class="end-row">
+        <button class="link-btn" id="endBtn">End game</button>
+      </div>
+    </div>
+
+    <!-- SUMMARY SCREEN -->
+    <div class="summary-view" id="summaryView">
+      <h2 id="summaryHeading">Game over</h2>
+      <p class="summary-sub" id="summarySub">You ended the round early.</p>
+      <div class="badge-row">
+        <div id="newBestBadge" style="display:none;" class="new-best">New high score</div>
+        <div id="newBestTimeBadge" style="display:none;" class="new-best">New best time</div>
+      </div>
+
+      <div class="summary-stats">
+        <div class="stat-box">
+          <div class="stat-label">Final score</div>
+          <div class="stat-value" id="finalScore">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Correct</div>
+          <div class="stat-value" id="finalCorrect">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Incorrect</div>
+          <div class="stat-value" id="finalIncorrect">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Best streak</div>
+          <div class="stat-value" id="finalStreak">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Time taken</div>
+          <div class="stat-value" id="finalTime">&ndash;</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Best time</div>
+          <div class="stat-value" id="finalBestTime">&ndash;</div>
+          <div class="stat-sub" id="finalBestTimeSub">&nbsp;</div>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="playAgainBtn">Play again</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  const STORAGE_KEY = "timesTablesHighScore_12_19";
+  const STREAK_KEY = "timesTablesBestStreak_12_19";
+  const CORRECT_KEY = "timesTablesBestCorrect_12_19";
+  const BEST_TIME_KEY = "timesTablesBestTime_12_19";
+  let QUESTION_SECONDS = 10;
+
+  function loadNumber(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      const n = raw === null ? 0 : parseInt(raw, 10);
+      return Number.isFinite(n) ? n : 0;
+    } catch (e) { return 0; }
+  }
+  function saveNumber(key, value) {
+    try { localStorage.setItem(key, String(value)); } catch (e) { /* unavailable */ }
+  }
+
+  // Best time is stored per range (e.g. "12-19"), because a smaller range has fewer questions.
+  // Each record is { incorrect, ms }: fewer incorrect always wins; on a tie, the faster time wins.
+  function loadTimeRecords() {
+    try {
+      const raw = localStorage.getItem(BEST_TIME_KEY);
+      const obj = raw ? JSON.parse(raw) : {};
+      return obj && typeof obj === "object" ? obj : {};
+    } catch (e) { return {}; }
+  }
+  function saveTimeRecords(obj) {
+    try { localStorage.setItem(BEST_TIME_KEY, JSON.stringify(obj)); } catch (e) { /* unavailable */ }
+  }
+  function formatTime(ms) {
+    if (!ms || ms <= 0) return "\u2013";
+    const total = ms / 1000;
+    if (total < 60) return total.toFixed(1) + "s";
+    const m = Math.floor(total / 60);
+    const sec = total - m * 60;
+    return m + ":" + (sec < 10 ? "0" : "") + sec.toFixed(1);
+  }
+
+  let highScore = loadNumber(STORAGE_KEY);
+  let bestStreak = loadNumber(STREAK_KEY);
+  let bestCorrect = loadNumber(CORRECT_KEY);
+
+  const startView = document.getElementById("startView");
+  const gameView = document.getElementById("gameView");
+  const summaryView = document.getElementById("summaryView");
+
+  const highScoreDisplay = document.getElementById("highScoreDisplay");
+  const highStreakDisplay = document.getElementById("highStreakDisplay");
+  const highCorrectDisplay = document.getElementById("highCorrectDisplay");
+  const liveHighScore = document.getElementById("liveHighScore");
+  const scoreDisplay = document.getElementById("scoreDisplay");
+  const streakLine = document.getElementById("streakLine");
+  const equationDisplay = document.getElementById("equationDisplay");
+  const answerForm = document.getElementById("answerForm");
+  const answerInput = document.getElementById("answerInput");
+  const feedback = document.getElementById("feedback");
+  const checkBtn = document.getElementById("checkBtn");
+  const timerFill = document.getElementById("timerFill");
+
+  const startBtn = document.getElementById("startBtn");
+  const endBtn = document.getElementById("endBtn");
+  const playAgainBtn = document.getElementById("playAgainBtn");
+
+  const finalScore = document.getElementById("finalScore");
+  const finalCorrect = document.getElementById("finalCorrect");
+  const finalIncorrect = document.getElementById("finalIncorrect");
+  const finalStreak = document.getElementById("finalStreak");
+  const newBestBadge = document.getElementById("newBestBadge");
+  const newBestTimeBadge = document.getElementById("newBestTimeBadge");
+  const finalTime = document.getElementById("finalTime");
+  const finalBestTime = document.getElementById("finalBestTime");
+  const finalBestTimeSub = document.getElementById("finalBestTimeSub");
+  const summaryHeading = document.getElementById("summaryHeading");
+  const summarySub = document.getElementById("summarySub");
+
+  const minRange = document.getElementById("minRange");
+  const maxRange = document.getElementById("maxRange");
+  const rangeMinLabel = document.getElementById("rangeMinLabel");
+  const rangeMaxLabel = document.getElementById("rangeMaxLabel");
+  const rangeTrackFill = document.getElementById("rangeTrackFill");
+  const questionCount = document.getElementById("questionCount");
+
+  const SLIDER_MIN = 12;
+  const SLIDER_MAX = 19;
+
+  const CORRECT_POINTS = 10;
+  const INCORRECT_POINTS = -4;
+
+  let score = 0;
+  let correctCount = 0;
+  let incorrectCount = 0;
+  let streak = 0;
+  let sessionBestStreak = 0;
+  let totalAnswerMs = 0;
+  let questionStart = 0;
+  let activeRangeKey = "";
+  let currentA = 0;
+  let currentB = 0;
+  let awaitingNext = false;
+  let advanceTimer = null;
+  let countdownInterval = null;
+  let timeLeft = QUESTION_SECONDS;
+
+  let questionQueue = [];
+  let queueIndex = 0;
+
+  function refreshStartStats() {
+    highScoreDisplay.textContent = highScore;
+    highStreakDisplay.textContent = bestStreak;
+    highCorrectDisplay.textContent = bestCorrect;
+  }
+
+  function updateSliderUI() {
+    let lo = parseInt(minRange.value, 10);
+    let hi = parseInt(maxRange.value, 10);
+    if (lo > hi) { lo = hi; minRange.value = lo; }
+
+    rangeMinLabel.textContent = lo;
+    rangeMaxLabel.textContent = hi;
+
+    const span = SLIDER_MAX - SLIDER_MIN;
+    const leftPct = ((lo - SLIDER_MIN) / span) * 100;
+    const rightPct = ((hi - SLIDER_MIN) / span) * 100;
+    rangeTrackFill.style.left = leftPct + "%";
+    rangeTrackFill.style.width = (rightPct - leftPct) + "%";
+
+    const tableCount = (hi - lo + 1) * 10;
+    questionCount.innerHTML = "<b>" + tableCount + "</b> question" + (tableCount === 1 ? "" : "s") + " in this round";
+  }
+
+  minRange.addEventListener("input", updateSliderUI);
+  maxRange.addEventListener("input", updateSliderUI);
+  updateSliderUI();
+
+  const difficultyRow = document.getElementById("difficultyRow");
+  difficultyRow.addEventListener("click", function (e) {
+    const btn = e.target.closest(".difficulty-btn");
+    if (!btn) return;
+    difficultyRow.querySelectorAll(".difficulty-btn").forEach(function (b) {
+      b.classList.remove("active");
+    });
+    btn.classList.add("active");
+    QUESTION_SECONDS = parseInt(btn.dataset.seconds, 10);
+  });
+
+  function randomInRange(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function buildQueue(lo, hi) {
+    const list = [];
+    for (let a = lo; a <= hi; a++) {
+      for (let b = 1; b <= 10; b++) {
+        list.push({ a, b });
+      }
+    }
+    return shuffle(list);
+  }
+
+  function stopCountdown() {
+    if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+  }
+
+  function startCountdown() {
+    stopCountdown();
+    timeLeft = QUESTION_SECONDS;
+    questionStart = performance.now();
+    timerFill.style.width = "100%";
+    timerFill.classList.remove("urgent");
+    countdownInterval = setInterval(function () {
+      timeLeft -= 0.1;
+      const pct = Math.max(0, (timeLeft / QUESTION_SECONDS) * 100);
+      timerFill.style.width = pct + "%";
+      if (timeLeft <= QUESTION_SECONDS * 0.3) timerFill.classList.add("urgent");
+      if (timeLeft <= 0) {
+        stopCountdown();
+        handleTimeout();
+      }
+    }, 100);
+  }
+
+  function newQuestion() {
+    if (queueIndex >= questionQueue.length) {
+      endGame(true);
+      return;
+    }
+    const q = questionQueue[queueIndex];
+    queueIndex += 1;
+    currentA = q.a;
+    currentB = q.b;
+
+    equationDisplay.innerHTML = currentA + '<span class="op">&times;</span>' + currentB;
+    answerInput.value = "";
+    feedback.textContent = "\u00A0";
+    feedback.className = "feedback";
+    checkBtn.disabled = false;
+    answerInput.disabled = false;
+    awaitingNext = false;
+    answerInput.focus();
+    startCountdown();
+  }
+
+  function updateStreakLine() {
+    streakLine.innerHTML = streak >= 2 ? "Streak: <b>" + streak + "</b> in a row" : "\u00A0";
+  }
+
+  function startGame() {
+    const lo = parseInt(minRange.value, 10);
+    const hi = parseInt(maxRange.value, 10);
+    questionQueue = buildQueue(lo, hi);
+    queueIndex = 0;
+
+    score = 0;
+    correctCount = 0;
+    incorrectCount = 0;
+    streak = 0;
+    sessionBestStreak = 0;
+    totalAnswerMs = 0;
+    activeRangeKey = lo + "-" + hi;
+    scoreDisplay.textContent = "0";
+    liveHighScore.textContent = highScore;
+    updateStreakLine();
+
+    startView.classList.add("hidden");
+    summaryView.classList.remove("active");
+    gameView.classList.add("active");
+
+    newQuestion();
+  }
+
+  function finishAnswer(isCorrect, given) {
+    const limitMs = QUESTION_SECONDS * 1000;
+    totalAnswerMs += given === null ? limitMs : Math.min(limitMs, performance.now() - questionStart);
+    stopCountdown();
+    awaitingNext = true;
+    checkBtn.disabled = true;
+    answerInput.disabled = true;
+
+    const correctAnswer = currentA * currentB;
+
+    if (isCorrect) {
+      score += CORRECT_POINTS;
+      correctCount += 1;
+      streak += 1;
+      if (streak > sessionBestStreak) sessionBestStreak = streak;
+      feedback.textContent = "Correct — +" + CORRECT_POINTS;
+      feedback.className = "feedback correct";
+    } else {
+      score = Math.max(0, score + INCORRECT_POINTS);
+      incorrectCount += 1;
+      streak = 0;
+      if (given === null) {
+        feedback.textContent = "Time's up — it's " + correctAnswer + " (" + INCORRECT_POINTS + ")";
+      } else {
+        feedback.textContent = "Not quite — it's " + correctAnswer + " (" + INCORRECT_POINTS + ")";
+      }
+      feedback.className = "feedback incorrect";
+    }
+
+    scoreDisplay.textContent = score;
+    if (score > highScore) liveHighScore.textContent = score;
+    updateStreakLine();
+
+    advanceTimer = setTimeout(newQuestion, isCorrect ? 700 : 1400);
+  }
+
+  function handleTimeout() {
+    if (awaitingNext) return;
+    finishAnswer(false, null);
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (awaitingNext) return;
+    const raw = answerInput.value;
+    if (raw === "") return;
+    const given = parseInt(raw, 10);
+    finishAnswer(given === currentA * currentB, given);
+  }
+
+  function endGame(completed) {
+    if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
+    stopCountdown();
+
+    gameView.classList.remove("active");
+    summaryView.classList.add("active");
+
+    let isNewBest = false;
+    if (score > highScore) { highScore = score; saveNumber(STORAGE_KEY, highScore); isNewBest = true; }
+    if (sessionBestStreak > bestStreak) { bestStreak = sessionBestStreak; saveNumber(STREAK_KEY, bestStreak); }
+    if (correctCount > bestCorrect) { bestCorrect = correctCount; saveNumber(CORRECT_KEY, bestCorrect); }
+
+    // Best time: only full rounds count. Fewer incorrect beats everything; equal incorrect -> faster time wins.
+    const elapsedMs = completed ? Math.round(totalAnswerMs) : 0;
+    const timeRecords = loadTimeRecords();
+    const prior = timeRecords[activeRangeKey];
+    const hasPrior = prior && Number.isFinite(prior.incorrect) && Number.isFinite(prior.ms);
+    let isNewBestTime = false;
+    if (completed && elapsedMs > 0 &&
+        (!hasPrior || incorrectCount < prior.incorrect ||
+         (incorrectCount === prior.incorrect && elapsedMs < prior.ms))) {
+      timeRecords[activeRangeKey] = { incorrect: incorrectCount, ms: elapsedMs };
+      saveTimeRecords(timeRecords);
+      isNewBestTime = true;
+    }
+    const bestRec = timeRecords[activeRangeKey];
+
+    summaryHeading.textContent = completed ? "Round complete" : "Game over";
+    summarySub.textContent = completed
+      ? "You've worked through every question in this range."
+      : "You ended the round early.";
+
+    finalScore.textContent = score;
+    finalCorrect.textContent = correctCount;
+    finalIncorrect.textContent = incorrectCount;
+    finalStreak.textContent = sessionBestStreak;
+    newBestBadge.style.display = isNewBest ? "inline-block" : "none";
+
+    finalTime.textContent = completed ? formatTime(elapsedMs) : "\u2013";
+    if (bestRec && Number.isFinite(bestRec.ms)) {
+      finalBestTime.textContent = formatTime(bestRec.ms);
+      finalBestTimeSub.textContent = bestRec.incorrect + " incorrect";
+    } else {
+      finalBestTime.textContent = "\u2013";
+      finalBestTimeSub.innerHTML = "&nbsp;";
+    }
+    newBestTimeBadge.style.display = isNewBestTime ? "inline-block" : "none";
+
+    refreshStartStats();
+  }
+
+  startBtn.addEventListener("click", startGame);
+  playAgainBtn.addEventListener("click", function () {
+    summaryView.classList.remove("active");
+    startView.classList.remove("hidden");
+  });
+  endBtn.addEventListener("click", function () { endGame(false); });
+  answerForm.addEventListener("submit", handleSubmit);
+
+  refreshStartStats();
+})();
+</script>
+
+</body>
+</html>
