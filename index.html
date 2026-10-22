@@ -219,6 +219,24 @@
   }
   .badge-row { display: flex; gap: 8px; flex-wrap: wrap; }
   .stat-box .stat-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .stat-row.tight { margin-bottom: 12px; }
+  .stat-box.wide { grid-column: 1 / -1; }
+  .stat-box .stat-sub { min-height: 15px; }
+  .pause-btn {
+    align-self: center; background: var(--bg-deep); border: 1.5px solid var(--panel-line); color: var(--ink);
+    font-size: 13px; font-weight: 600; padding: 7px 14px; border-radius: 100px;
+    transition: border-color 120ms ease; cursor: pointer; font-family: var(--font-body);
+  }
+  .pause-btn:hover { border-color: var(--accent); }
+  .pause-btn:focus-visible { outline: 2px solid var(--accent); }
+  .pause-overlay {
+    display: none; position: absolute; inset: 0; z-index: 5; background: var(--panel);
+    flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 28px;
+  }
+  .pause-overlay.show { display: flex; }
+  .pause-overlay h2 { font-family: var(--font-display); font-size: 28px; margin: 0 0 8px; }
+  .pause-overlay p { color: var(--muted); font-size: 14px; line-height: 1.55; margin: 0 0 22px; max-width: 30ch; }
+  .pause-overlay .btn-primary { max-width: 260px; }
   .summary-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0 24px; }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -232,12 +250,20 @@
 <div class="stage">
   <div class="card">
 
+    <!-- PAUSE OVERLAY (covers the question so it can't be seen while paused) -->
+    <div class="pause-overlay" id="pauseOverlay" role="dialog" aria-label="Game paused">
+      <h2>Paused</h2>
+      <p>The timer is stopped and the question is hidden. Take your time.</p>
+      <button type="button" class="btn-primary" id="resumeBtn">Resume</button>
+      <div class="end-row"><button type="button" class="link-btn" id="pauseEndBtn">End game</button></div>
+    </div>
+
     <!-- START SCREEN -->
     <div class="start-view" id="startView">
       <h1>Times tables,<br><span class="range">your range</span></h1>
       <p class="lede">Random questions, no repeats until every combination in range has come up. Five seconds per answer.</p>
 
-      <div class="stat-row">
+      <div class="stat-row tight">
         <div class="stat-box">
           <div class="stat-label">High score</div>
           <div class="stat-value" id="highScoreDisplay">0</div>
@@ -249,6 +275,13 @@
         <div class="stat-box">
           <div class="stat-label">Best correct</div>
           <div class="stat-value" id="highCorrectDisplay">0</div>
+        </div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box">
+          <div class="stat-label">Avg of top 5 scores</div>
+          <div class="stat-value" id="avgTopDisplay">&ndash;</div>
+          <div class="stat-sub" id="avgTopSub">&nbsp;</div>
         </div>
       </div>
 
@@ -292,6 +325,7 @@
           <div class="metric-label">Score</div>
           <div class="metric-value" id="scoreDisplay">0</div>
         </div>
+        <button type="button" class="pause-btn" id="pauseBtn" title="Pause (Esc)">Pause</button>
         <div class="metric right">
           <div class="metric-label">High score</div>
           <div class="metric-value" id="liveHighScore">0</div>
@@ -351,6 +385,11 @@
           <div class="stat-value" id="finalBestTime">&ndash;</div>
           <div class="stat-sub" id="finalBestTimeSub">&nbsp;</div>
         </div>
+        <div class="stat-box wide">
+          <div class="stat-label">Avg of top 5 scores</div>
+          <div class="stat-value" id="finalAvgTop">&ndash;</div>
+          <div class="stat-sub" id="finalAvgTopSub">&nbsp;</div>
+        </div>
       </div>
 
       <button class="btn-primary" id="playAgainBtn">Play again</button>
@@ -367,6 +406,7 @@
   const STREAK_KEY = "timesTablesBestStreak_12_19";
   const CORRECT_KEY = "timesTablesBestCorrect_12_19";
   const BEST_TIME_KEY = "timesTablesBestTime_12_19";
+  const TOP_SCORES_KEY = "timesTablesTopScores_12_19";
   let QUESTION_SECONDS = 10;
 
   function loadNumber(key) {
@@ -403,6 +443,40 @@
     return m + ":" + (sec < 10 ? "0" : "") + sec.toFixed(1);
   }
 
+  // Top 5 scores: your five best final scores, each { s: score, t: when it was set }.
+  // The average of these updates every time a new score gets into the top 5.
+  const TOP_N = 5;
+  function sortScores(list) { return list.slice().sort(function (a, b) { return b.s - a.s; }); }
+  function loadTopScores() {
+    let list = [];
+    try {
+      const raw = localStorage.getItem(TOP_SCORES_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(arr)) {
+        list = arr.filter(function (e) { return e && Number.isFinite(e.s) && e.s > 0; });
+      }
+    } catch (e) { /* ignore */ }
+    // Your high score always belongs in the list (covers scores saved before this feature existed).
+    if (highScore > 0 && !list.some(function (e) { return e.s >= highScore; })) list.push({ s: highScore, t: 0 });
+    return sortScores(list).slice(0, TOP_N);
+  }
+  function saveTopScores(list) {
+    try { localStorage.setItem(TOP_SCORES_KEY, JSON.stringify(list)); } catch (e) { /* unavailable */ }
+    if (window.cloudSave) window.cloudSave();
+  }
+  function renderTopAvg(list, valueEl, subEl) {
+    if (!list.length) {
+      valueEl.textContent = "\u2013";
+      subEl.textContent = "play a game to start";
+      return;
+    }
+    let total = 0;
+    list.forEach(function (e) { total += e.s; });
+    const avg = total / list.length;
+    valueEl.textContent = Number.isInteger(avg) ? String(avg) : avg.toFixed(1);
+    subEl.textContent = list.length === TOP_N ? "average of your top 5" : "your top " + list.length + " so far (needs 5)";
+  }
+
   let highScore = loadNumber(STORAGE_KEY);
   let bestStreak = loadNumber(STREAK_KEY);
   let bestCorrect = loadNumber(CORRECT_KEY);
@@ -437,6 +511,14 @@
   const finalTime = document.getElementById("finalTime");
   const finalBestTime = document.getElementById("finalBestTime");
   const finalBestTimeSub = document.getElementById("finalBestTimeSub");
+  const avgTopDisplay = document.getElementById("avgTopDisplay");
+  const avgTopSub = document.getElementById("avgTopSub");
+  const finalAvgTop = document.getElementById("finalAvgTop");
+  const finalAvgTopSub = document.getElementById("finalAvgTopSub");
+  const pauseBtn = document.getElementById("pauseBtn");
+  const pauseOverlay = document.getElementById("pauseOverlay");
+  const resumeBtn = document.getElementById("resumeBtn");
+  const pauseEndBtn = document.getElementById("pauseEndBtn");
   const summaryHeading = document.getElementById("summaryHeading");
   const summarySub = document.getElementById("summarySub");
 
@@ -467,6 +549,10 @@
   let advanceTimer = null;
   let countdownInterval = null;
   let timeLeft = QUESTION_SECONDS;
+  let paused = false;
+  let pausedAt = 0;
+  let advanceDue = 0;
+  let pendingAdvanceMs = 0;
 
   let questionQueue = [];
   let queueIndex = 0;
@@ -475,6 +561,7 @@
     highScoreDisplay.textContent = highScore;
     highStreakDisplay.textContent = bestStreak;
     highCorrectDisplay.textContent = bestCorrect;
+    renderTopAvg(loadTopScores(), avgTopDisplay, avgTopSub);
   }
 
   function updateSliderUI() {
@@ -542,6 +629,11 @@
     questionStart = performance.now();
     timerFill.style.width = "100%";
     timerFill.classList.remove("urgent");
+    runCountdown();
+  }
+
+  function runCountdown() {
+    stopCountdown();
     countdownInterval = setInterval(function () {
       timeLeft -= 0.1;
       const pct = Math.max(0, (timeLeft / QUESTION_SECONDS) * 100);
@@ -592,6 +684,8 @@
     sessionBestStreak = 0;
     totalAnswerMs = 0;
     activeRangeKey = lo + "-" + hi;
+    paused = false;
+    pauseOverlay.classList.remove("show");
     scoreDisplay.textContent = "0";
     liveHighScore.textContent = highScore;
     updateStreakLine();
@@ -636,7 +730,9 @@
     if (score > highScore) liveHighScore.textContent = score;
     updateStreakLine();
 
-    advanceTimer = setTimeout(newQuestion, isCorrect ? 700 : 1400);
+    const delay = isCorrect ? 700 : 1400;
+    advanceDue = performance.now() + delay;
+    advanceTimer = setTimeout(newQuestion, delay);
   }
 
   function handleTimeout() {
@@ -646,7 +742,7 @@
 
   function handleSubmit(e) {
     e.preventDefault();
-    if (awaitingNext) return;
+    if (awaitingNext || paused) return;
     const raw = answerInput.value;
     if (raw === "") return;
     const given = parseInt(raw, 10);
@@ -654,11 +750,20 @@
   }
 
   function endGame(completed) {
+    paused = false;
+    pauseOverlay.classList.remove("show");
     if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
     stopCountdown();
 
     gameView.classList.remove("active");
     summaryView.classList.add("active");
+
+    // Top 5 scores: read the list BEFORE the high score is updated, then add this game's score.
+    let topAfter = loadTopScores();
+    if (score > 0) {
+      topAfter = sortScores(topAfter.concat([{ s: score, t: Date.now() }])).slice(0, TOP_N);
+      saveTopScores(topAfter);
+    }
 
     let isNewBest = false;
     if (score > highScore) { highScore = score; saveNumber(STORAGE_KEY, highScore); isNewBest = true; }
@@ -690,6 +795,7 @@
     finalIncorrect.textContent = incorrectCount;
     finalStreak.textContent = sessionBestStreak;
     newBestBadge.style.display = isNewBest ? "inline-block" : "none";
+    renderTopAvg(topAfter, finalAvgTop, finalAvgTopSub);
 
     finalTime.textContent = completed ? formatTime(elapsedMs) : "\u2013";
     if (bestRec && Number.isFinite(bestRec.ms)) {
@@ -703,6 +809,54 @@
 
     refreshStartStats();
   }
+
+  /* ---------- pause ---------- */
+  function gameIsActive() { return gameView.classList.contains("active"); }
+
+  function pauseGame() {
+    if (paused || !gameIsActive()) return;
+    paused = true;
+    pausedAt = performance.now();
+    stopCountdown();
+    if (advanceTimer) {
+      // paused during the short feedback pause: remember how long was left before the next question
+      clearTimeout(advanceTimer);
+      advanceTimer = null;
+      pendingAdvanceMs = Math.max(0, advanceDue - pausedAt);
+    }
+    answerInput.blur();
+    pauseOverlay.classList.add("show");
+    resumeBtn.focus();
+  }
+
+  function resumeGame() {
+    if (!paused) return;
+    paused = false;
+    const now = performance.now();
+    pauseOverlay.classList.remove("show");
+    if (awaitingNext) {
+      advanceDue = now + pendingAdvanceMs;
+      advanceTimer = setTimeout(newQuestion, pendingAdvanceMs);
+    } else {
+      questionStart += now - pausedAt;   // paused time doesn't count against the question or your total time
+      runCountdown();
+      answerInput.focus();
+    }
+  }
+
+  pauseBtn.addEventListener("click", pauseGame);
+  resumeBtn.addEventListener("click", resumeGame);
+  pauseEndBtn.addEventListener("click", function () { endGame(false); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && gameIsActive()) {
+      e.preventDefault();
+      if (paused) resumeGame(); else pauseGame();
+    }
+  });
+  // Switching tabs or minimising the window pauses automatically.
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) pauseGame();
+  });
 
   startBtn.addEventListener("click", startGame);
   playAgainBtn.addEventListener("click", function () {
@@ -758,7 +912,8 @@
     highScore:   "timesTablesHighScore_12_19",
     bestStreak:  "timesTablesBestStreak_12_19",
     bestCorrect: "timesTablesBestCorrect_12_19",
-    bestTimes:   "timesTablesBestTime_12_19"
+    bestTimes:   "timesTablesBestTime_12_19",
+    topScores:   "timesTablesTopScores_12_19"
   };
 
   const statusEl = document.getElementById("syncStatus");
@@ -769,6 +924,26 @@
 
   function num(v) { const n = parseInt(v, 10); return Number.isFinite(n) ? n : 0; }
 
+  // Clean list of {s, t} from an array or JSON string.
+  function scoreList(v) {
+    try {
+      const arr = typeof v === "string" ? JSON.parse(v) : v;
+      if (!Array.isArray(arr)) return [];
+      return arr.filter(function (e) { return e && Number.isFinite(e.s) && e.s > 0; })
+        .map(function (e) { return { s: e.s, t: Number.isFinite(e.t) ? e.t : 0 }; });
+    } catch (e) { return []; }
+  }
+  // Union of both lists, the same game counted once, best 5 kept.
+  function mergeScores(a, b) {
+    const seen = new Set(), out = [];
+    scoreList(a).concat(scoreList(b)).forEach(function (e) {
+      const id = e.t + "|" + e.s;
+      if (!seen.has(id)) { seen.add(id); out.push(e); }
+    });
+    out.sort(function (x, y) { return y.s - x.s; });
+    return out.slice(0, 5);
+  }
+
   function readLocal() {
     let times = {};
     try { times = JSON.parse(localStorage.getItem(K.bestTimes) || "{}") || {}; } catch (e) {}
@@ -776,7 +951,8 @@
       highScore:   num(localStorage.getItem(K.highScore)),
       bestStreak:  num(localStorage.getItem(K.bestStreak)),
       bestCorrect: num(localStorage.getItem(K.bestCorrect)),
-      bestTimes:   times
+      bestTimes:   times,
+      topScores:   scoreList(localStorage.getItem(K.topScores))
     };
   }
 
@@ -785,6 +961,7 @@
     localStorage.setItem(K.bestStreak,  String(d.bestStreak));
     localStorage.setItem(K.bestCorrect, String(d.bestCorrect));
     localStorage.setItem(K.bestTimes,   JSON.stringify(d.bestTimes));
+    localStorage.setItem(K.topScores,   JSON.stringify(scoreList(d.topScores)));
   }
 
   // Keep the best of both sides: higher numbers win; for times, fewer incorrect wins, then faster.
@@ -794,7 +971,8 @@
       highScore:   Math.max(num(a.highScore),   num(b.highScore)),
       bestStreak:  Math.max(num(a.bestStreak),  num(b.bestStreak)),
       bestCorrect: Math.max(num(a.bestCorrect), num(b.bestCorrect)),
-      bestTimes:   {}
+      bestTimes:   {},
+      topScores:   mergeScores(a.topScores, b.topScores)
     };
     const ta = a.bestTimes || {}, tb = b.bestTimes || {};
     new Set([...Object.keys(ta), ...Object.keys(tb)]).forEach(function (range) {
@@ -843,13 +1021,20 @@
     refreshButtons();
   }
 
+  // Firebase remembers a signed-in user (Google included) across page reloads and reports it here.
+  // Only create an anonymous user when nobody is signed in. Calling signInAnonymously() on every load
+  // would replace a restored Google session with a brand-new anonymous one.
+  let triedAnonymous = false;
   onAuthStateChanged(auth, function (user) {
     currentUser = user;
-    if (user) { refreshButtons(); syncDown(user); } else { refreshButtons(); }
-  });
-  signInAnonymously(auth).catch(function (e) {
-    console.error("Anonymous sign-in failed", e);
-    statusEl.textContent = "Cloud: sign-in failed (see console)";
+    refreshButtons();
+    if (user) { syncDown(user); return; }
+    if (triedAnonymous) return;
+    triedAnonymous = true;
+    signInAnonymously(auth).catch(function (e) {
+      console.error("Anonymous sign-in failed", e);
+      statusEl.textContent = "Cloud: sign-in failed (see console)";
+    });
   });
 
   // Upgrade the anonymous account to Google so scores follow you across devices/browsers.
@@ -882,7 +1067,8 @@
         highScore:   num(old[K.highScore]),
         bestStreak:  num(old[K.bestStreak]),
         bestCorrect: num(old[K.bestCorrect]),
-        bestTimes:   times
+        bestTimes:   times,
+        topScores:   scoreList(old[K.topScores])
       };
       writeLocal(merge(readLocal(), imported));
       window.timesTablesGame && window.timesTablesGame.reload();
