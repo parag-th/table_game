@@ -390,6 +390,11 @@
           <div class="stat-value" id="finalAvgTop">&ndash;</div>
           <div class="stat-sub" id="finalAvgTopSub">&nbsp;</div>
         </div>
+        <div class="stat-box wide">
+          <div class="stat-label">Avg of top 5 times</div>
+          <div class="stat-value" id="finalAvgTime">&ndash;</div>
+          <div class="stat-sub" id="finalAvgTimeSub">&nbsp;</div>
+        </div>
       </div>
 
       <button class="btn-primary" id="playAgainBtn">Play again</button>
@@ -477,6 +482,51 @@
     subEl.textContent = list.length === TOP_N ? "average of your top 5" : "your top " + list.length + " so far (needs 5)";
   }
 
+  // Top 5 times, per range: your five best completed rounds, ranked like the best time
+  // (fewer incorrect first, then faster). Each entry is { incorrect, ms, t }.
+  // The average needs a full 5, otherwise it would just equal your best time.
+  const TOP_TIMES_KEY = "timesTablesTopTimes_12_19";
+  function validTimeEntry(e) { return e && Number.isFinite(e.incorrect) && Number.isFinite(e.ms) && e.ms > 0; }
+  function sortTimes(list) {
+    return list.slice().sort(function (a, b) { return (a.incorrect - b.incorrect) || (a.ms - b.ms); });
+  }
+  function readTopTimesObj() {
+    try {
+      const raw = localStorage.getItem(TOP_TIMES_KEY);
+      const obj = raw ? JSON.parse(raw) : {};
+      return obj && typeof obj === "object" && !Array.isArray(obj) ? obj : {};
+    } catch (e) { return {}; }
+  }
+  function loadTopTimes(range) {
+    let list = null;
+    const obj = readTopTimesObj();
+    if (Array.isArray(obj[range])) list = obj[range].filter(validTimeEntry);
+    if (list === null) {
+      // first time for this range: start from your existing best time, if you have one
+      const rec = loadTimeRecords()[range];
+      list = rec && validTimeEntry(rec) ? [{ incorrect: rec.incorrect, ms: rec.ms, t: 0 }] : [];
+    }
+    return sortTimes(list).slice(0, TOP_N);
+  }
+  function saveTopTimes(range, list) {
+    const obj = readTopTimesObj();
+    obj[range] = list;
+    try { localStorage.setItem(TOP_TIMES_KEY, JSON.stringify(obj)); } catch (e) { /* unavailable */ }
+    if (window.cloudSave) window.cloudSave();
+  }
+  function renderTopTimeAvg(list, valueEl, subEl) {
+    if (list.length < TOP_N) {
+      valueEl.textContent = "\u2013";
+      subEl.textContent = list.length + " of " + TOP_N + " rounds played";
+      return;
+    }
+    let ms = 0, inc = 0;
+    list.forEach(function (e) { ms += e.ms; inc += e.incorrect; });
+    valueEl.textContent = formatTime(ms / list.length);
+    const avgInc = inc / list.length;
+    subEl.textContent = "avg " + (Number.isInteger(avgInc) ? String(avgInc) : avgInc.toFixed(1)) + " incorrect";
+  }
+
   let highScore = loadNumber(STORAGE_KEY);
   let bestStreak = loadNumber(STREAK_KEY);
   let bestCorrect = loadNumber(CORRECT_KEY);
@@ -515,6 +565,8 @@
   const avgTopSub = document.getElementById("avgTopSub");
   const finalAvgTop = document.getElementById("finalAvgTop");
   const finalAvgTopSub = document.getElementById("finalAvgTopSub");
+  const finalAvgTime = document.getElementById("finalAvgTime");
+  const finalAvgTimeSub = document.getElementById("finalAvgTimeSub");
   const pauseBtn = document.getElementById("pauseBtn");
   const pauseOverlay = document.getElementById("pauseOverlay");
   const resumeBtn = document.getElementById("resumeBtn");
@@ -772,6 +824,14 @@
 
     // Best time: only full rounds count. Fewer incorrect beats everything; equal incorrect -> faster time wins.
     const elapsedMs = completed ? Math.round(totalAnswerMs) : 0;
+
+    // Top 5 times for this range (read BEFORE the best time below changes, then add this round).
+    let topTimesAfter = loadTopTimes(activeRangeKey);
+    if (completed && elapsedMs > 0) {
+      topTimesAfter = sortTimes(topTimesAfter.concat([{ incorrect: incorrectCount, ms: elapsedMs, t: Date.now() }])).slice(0, TOP_N);
+      saveTopTimes(activeRangeKey, topTimesAfter);
+    }
+
     const timeRecords = loadTimeRecords();
     const prior = timeRecords[activeRangeKey];
     const hasPrior = prior && Number.isFinite(prior.incorrect) && Number.isFinite(prior.ms);
@@ -806,6 +866,7 @@
       finalBestTimeSub.innerHTML = "&nbsp;";
     }
     newBestTimeBadge.style.display = isNewBestTime ? "inline-block" : "none";
+    renderTopTimeAvg(topTimesAfter, finalAvgTime, finalAvgTimeSub);
 
     refreshStartStats();
   }
@@ -913,7 +974,8 @@
     bestStreak:  "timesTablesBestStreak_12_19",
     bestCorrect: "timesTablesBestCorrect_12_19",
     bestTimes:   "timesTablesBestTime_12_19",
-    topScores:   "timesTablesTopScores_12_19"
+    topScores:   "timesTablesTopScores_12_19",
+    topTimes:    "timesTablesTopTimes_12_19"
   };
 
   const statusEl = document.getElementById("syncStatus");
@@ -944,6 +1006,40 @@
     return out.slice(0, 5);
   }
 
+  // Top-5 times per range: { "12-19": [ {incorrect, ms, t}, ... ], ... }
+  function timeEntries(v) {
+    try {
+      const arr = typeof v === "string" ? JSON.parse(v) : v;
+      if (!Array.isArray(arr)) return [];
+      return arr.filter(function (e) { return e && Number.isFinite(e.incorrect) && Number.isFinite(e.ms) && e.ms > 0; })
+        .map(function (e) { return { incorrect: e.incorrect, ms: e.ms, t: Number.isFinite(e.t) ? e.t : 0 }; });
+    } catch (e) { return []; }
+  }
+  function timeMap(v) {
+    const out = {};
+    try {
+      const o = typeof v === "string" ? JSON.parse(v) : v;
+      if (o && typeof o === "object" && !Array.isArray(o)) {
+        Object.keys(o).forEach(function (r) { const l = timeEntries(o[r]); if (l.length) out[r] = l; });
+      }
+    } catch (e) { /* ignore */ }
+    return out;
+  }
+  // Union per range, the same round counted once, best 5 kept (fewer incorrect first, then faster).
+  function mergeTopTimes(a, b) {
+    const ma = timeMap(a), mb = timeMap(b), out = {};
+    new Set([...Object.keys(ma), ...Object.keys(mb)]).forEach(function (range) {
+      const seen = new Set(), list = [];
+      (ma[range] || []).concat(mb[range] || []).forEach(function (e) {
+        const id = e.t + "|" + e.incorrect + "|" + e.ms;
+        if (!seen.has(id)) { seen.add(id); list.push(e); }
+      });
+      list.sort(function (x, y) { return (x.incorrect - y.incorrect) || (x.ms - y.ms); });
+      if (list.length) out[range] = list.slice(0, 5);
+    });
+    return out;
+  }
+
   function readLocal() {
     let times = {};
     try { times = JSON.parse(localStorage.getItem(K.bestTimes) || "{}") || {}; } catch (e) {}
@@ -952,7 +1048,8 @@
       bestStreak:  num(localStorage.getItem(K.bestStreak)),
       bestCorrect: num(localStorage.getItem(K.bestCorrect)),
       bestTimes:   times,
-      topScores:   scoreList(localStorage.getItem(K.topScores))
+      topScores:   scoreList(localStorage.getItem(K.topScores)),
+      topTimes:    timeMap(localStorage.getItem(K.topTimes))
     };
   }
 
@@ -962,6 +1059,7 @@
     localStorage.setItem(K.bestCorrect, String(d.bestCorrect));
     localStorage.setItem(K.bestTimes,   JSON.stringify(d.bestTimes));
     localStorage.setItem(K.topScores,   JSON.stringify(scoreList(d.topScores)));
+    localStorage.setItem(K.topTimes,    JSON.stringify(timeMap(d.topTimes)));
   }
 
   // Keep the best of both sides: higher numbers win; for times, fewer incorrect wins, then faster.
@@ -972,7 +1070,8 @@
       bestStreak:  Math.max(num(a.bestStreak),  num(b.bestStreak)),
       bestCorrect: Math.max(num(a.bestCorrect), num(b.bestCorrect)),
       bestTimes:   {},
-      topScores:   mergeScores(a.topScores, b.topScores)
+      topScores:   mergeScores(a.topScores, b.topScores),
+      topTimes:    mergeTopTimes(a.topTimes, b.topTimes)
     };
     const ta = a.bestTimes || {}, tb = b.bestTimes || {};
     new Set([...Object.keys(ta), ...Object.keys(tb)]).forEach(function (range) {
@@ -1068,7 +1167,8 @@
         bestStreak:  num(old[K.bestStreak]),
         bestCorrect: num(old[K.bestCorrect]),
         bestTimes:   times,
-        topScores:   scoreList(old[K.topScores])
+        topScores:   scoreList(old[K.topScores]),
+        topTimes:    timeMap(old[K.topTimes])
       };
       writeLocal(merge(readLocal(), imported));
       window.timesTablesGame && window.timesTablesGame.reload();
