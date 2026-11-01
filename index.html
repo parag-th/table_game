@@ -243,11 +243,76 @@
     .card { animation: rise 320ms ease; }
     @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   }
+
+  /* ---------- Notes ---------- */
+  [hidden] { display: none !important; }
+  .notes-link {
+    display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink);
+    background: var(--panel); border: 1px solid var(--panel-line); border-radius: 14px;
+    padding: 12px 16px; margin-bottom: 12px; font-weight: 600; font-size: 14.5px;
+    transition: border-color 120ms ease;
+  }
+  .notes-link:hover { border-color: var(--accent); }
+  .notes-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .notes-link svg { color: var(--accent); flex-shrink: 0; }
+  .notes-link small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; margin-top: 1px; }
+  @media (min-width: 1000px) {
+    .notes-link { position: fixed; top: 24px; right: 32px; margin: 0; width: 230px; z-index: 20; }
+  }
+  .stage:has(#startView.hidden) .notes-link { display: none; }   /* only on the start screen */
+
+  body.notes-open { height: auto; min-height: 100%; align-items: flex-start; }
+  .notes-page { width: 100%; max-width: 720px; margin: 0 auto; padding-bottom: 90px; }
+  .np-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+  .np-top h1 { font-family: var(--font-display); font-size: clamp(28px, 6vw, 36px); margin: 0; }
+  .np-back { color: var(--muted); font-size: 14px; text-decoration: underline; text-underline-offset: 3px; }
+  .np-back:hover { color: var(--ink); }
+  .np-card { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 18px; padding: 22px; margin-bottom: 18px; }
+  .np-card h2 { font-family: var(--font-display); font-size: 18px; margin: 0 0 14px; }
+  .np-row { display: grid; grid-template-columns: 170px 1fr; gap: 12px; margin-bottom: 12px; }
+  @media (max-width: 560px) { .np-row { grid-template-columns: 1fr; } }
+  .np-field { display: block; color: var(--muted); font-size: 12.5px; }
+  .np-field .req { color: var(--accent); }
+  .np-input {
+    display: block; width: 100%; margin-top: 6px; background: var(--bg-deep); border: 1.5px solid var(--panel-line);
+    border-radius: 12px; color: var(--ink); font-family: var(--font-body); font-size: 16px; padding: 11px 12px;
+    color-scheme: dark;
+  }
+  .np-input:focus { outline: none; border-color: var(--accent); }
+  .np-error { color: var(--bad); font-size: 13px; min-height: 18px; margin: 0 0 10px; }
+  .np-banner {
+    background: var(--bg-deep); border: 1.5px solid var(--bad); color: var(--ink); border-radius: 12px;
+    padding: 12px 14px; font-size: 13.5px; line-height: 1.5; margin-bottom: 16px;
+  }
+  .np-status { color: var(--muted); font-size: 14px; padding: 6px 2px; }
+  .np-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .np-item {
+    display: block; text-decoration: none; color: var(--ink); background: var(--panel);
+    border: 1px solid var(--panel-line); border-radius: 14px; padding: 14px 16px; transition: border-color 120ms ease;
+  }
+  .np-item:hover { border-color: var(--accent); }
+  .np-item:focus-visible { outline: 2px solid var(--accent); }
+  .np-item .np-date { display: block; color: var(--accent); font-size: 12px; font-weight: 600; letter-spacing: .02em; }
+  .np-item .np-title { display: block; font-family: var(--font-display); font-weight: 600; font-size: 17px; margin-top: 2px; overflow-wrap: anywhere; }
+  .np-item .np-preview { display: block; color: var(--muted); font-size: 13.5px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #edBody { min-height: 360px; resize: vertical; line-height: 1.6; margin-top: 4px; }
+  .np-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; }
+  .np-save { color: var(--muted); font-size: 13px; }
+  .np-save.bad { color: var(--bad); }
+  .np-danger {
+    background: none; color: var(--bad); border: 1.5px solid var(--bad); border-radius: 10px;
+    font-size: 13px; font-weight: 600; padding: 7px 12px; cursor: pointer; font-family: var(--font-body);
+  }
+  .np-danger:hover { background: var(--bad); color: var(--bg-deep); }
 </style>
 </head>
 <body>
 
 <div class="stage">
+  <a class="notes-link" href="#notes" id="notesLink">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 13h7M9 17h5"/></svg>
+    <span>Notes<small>Write and keep your notes</small></span>
+  </a>
   <div class="card">
 
     <!-- PAUSE OVERLAY (covers the question so it can't be seen while paused) -->
@@ -402,6 +467,57 @@
 
   </div>
 </div>
+
+<!-- ===== Notes page (opened from the Notes link; routes: #notes and #notes/<id>) ===== -->
+<main class="notes-page" id="notesPage" hidden>
+  <div class="np-top">
+    <h1 id="npTitle">Notes</h1>
+    <a class="np-back" href="#" id="npBack">&larr; Back to game</a>
+  </div>
+  <div class="np-banner" id="npBanner" role="alert" hidden></div>
+
+  <!-- LIST -->
+  <section id="notesListView">
+    <form class="np-card" id="newNoteForm" autocomplete="off">
+      <h2>New note</h2>
+      <div class="np-row">
+        <label class="np-field">Date <span class="req">*</span>
+          <input class="np-input" type="date" id="newDate" required>
+        </label>
+        <label class="np-field">Title <span class="req">*</span>
+          <input class="np-input" type="text" id="newTitle" maxlength="120" placeholder="e.g. Mistakes on the 17 table" required>
+        </label>
+      </div>
+      <p class="np-error" id="newError"></p>
+      <button type="submit" class="btn-primary">Create &amp; start writing</button>
+    </form>
+    <div class="np-status" id="listStatus">Loading your notes&hellip;</div>
+    <ul class="np-list" id="notesList"></ul>
+  </section>
+
+  <!-- EDITOR -->
+  <section id="noteEditorView" hidden>
+    <div class="np-status" id="edState" hidden></div>
+    <div class="np-card" id="edBox" hidden>
+      <div class="np-row">
+        <label class="np-field">Date <span class="req">*</span>
+          <input class="np-input" type="date" id="edDate" required>
+        </label>
+        <label class="np-field">Title <span class="req">*</span>
+          <input class="np-input" type="text" id="edTitle" maxlength="120" required>
+        </label>
+      </div>
+      <label class="np-field">Your notes
+        <textarea class="np-input" id="edBody" maxlength="100000" placeholder="Write your notes here&hellip;"></textarea>
+      </label>
+      <div class="np-foot">
+        <span class="np-save" id="saveStatus">Saved</span>
+        <button type="button" class="np-danger" id="deleteNoteBtn">Delete note</button>
+      </div>
+    </div>
+    <a class="np-back" href="#notes">&larr; All notes</a>
+  </section>
+</main>
 
 <script>
 (function () {
@@ -1178,6 +1294,208 @@
       alert("That doesn't look like valid JSON. Copy the full console output and try again.");
     }
   });
+</script>
+
+<!-- ===== Notes logic =====
+     Data: users/{uid}/notes/{noteId} = { title, date: "YYYY-MM-DD", body, createdAt, updatedAt }
+     One small document per note, so notes never touch (or bloat) your scores document.
+     It reuses the Firebase app and sign-in from the block above; nothing else in the game depends on it. -->
+<script type="module">
+  import { getApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, limit }
+    from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+  const $ = function (id) { return document.getElementById(id); };
+  const stage = document.querySelector(".stage"), page = $("notesPage");
+  const listView = $("notesListView"), editorView = $("noteEditorView");
+  const form = $("newNoteForm"), newDate = $("newDate"), newTitle = $("newTitle"), newError = $("newError");
+  const listStatus = $("listStatus"), listEl = $("notesList"), banner = $("npBanner");
+  const edState = $("edState"), edBox = $("edBox"), edDate = $("edDate"), edTitle = $("edTitle"), edBody = $("edBody");
+  const saveStatus = $("saveStatus"), delBtn = $("deleteNoteBtn"), npTitle = $("npTitle");
+
+  let db = null, auth = null;
+  try { const app = getApp(); db = getFirestore(app); auth = getAuth(app); }
+  catch (e) { console.error("Notes: Firebase not ready", e); }
+
+  let uid = null, unsub = null, notes = [], byId = new Map(), loaded = false, listError = null;
+  let editingId = null, filledFor = null, dirty = false, saveTimer = null;
+
+  function col() { return collection(db, "users", uid, "notes"); }
+  function ref(id) { return doc(db, "users", uid, "notes", id); }
+  function errCode(e) { return e && e.code ? String(e.code).replace(/^firestore\//, "") : (e && e.message) || "error"; }
+  function explain(e) {
+    return errCode(e) === "permission-denied"
+      ? "Your Firestore rules don't allow notes yet (permission-denied). Add a rule for users/{uid}/notes."
+      : "Something went wrong (" + errCode(e) + ").";
+  }
+  function showBanner(msg) { banner.textContent = msg || ""; banner.hidden = !msg; }
+  function today() {
+    const d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function prettyDate(s) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || "");
+    if (!m) return s || "";
+    return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  }
+  function setStatus(msg, bad) { saveStatus.textContent = msg; saveStatus.classList.toggle("bad", !!bad); }
+
+  /* ---------- list ---------- */
+  function renderList() {
+    let msg = "";
+    if (!db) msg = "Notes couldn't connect to Firebase.";
+    else if (listError) msg = explain(listError);
+    else if (!uid) msg = "Connecting to the cloud\u2026";
+    else if (!loaded) msg = "Loading your notes\u2026";
+    else if (!notes.length) msg = "No notes yet. Create your first one above.";
+    listStatus.textContent = msg;
+    listStatus.hidden = !msg;
+
+    const frag = document.createDocumentFragment();
+    notes.forEach(function (n) {
+      const li = document.createElement("li");
+      const a = document.createElement("a");
+      a.className = "np-item";
+      a.href = "#notes/" + encodeURIComponent(n.id);
+      const d = document.createElement("span"); d.className = "np-date"; d.textContent = prettyDate(n.date);
+      const t = document.createElement("span"); t.className = "np-title"; t.textContent = n.title || "(untitled)";
+      const p = document.createElement("span"); p.className = "np-preview";
+      p.textContent = (n.body || "").replace(/\s+/g, " ").trim().slice(0, 100);
+      a.appendChild(d); a.appendChild(t);
+      if (p.textContent) a.appendChild(p);
+      li.appendChild(a);
+      frag.appendChild(li);
+    });
+    listEl.replaceChildren(frag);
+  }
+
+  function subscribe(user) {
+    if (unsub) { unsub(); unsub = null; }
+    notes = []; byId = new Map(); loaded = false; listError = null;
+    uid = user ? user.uid : null;
+    renderList();
+    if (!uid || !db) return;
+    const q = query(col(), orderBy("date", "desc"), limit(200));
+    unsub = onSnapshot(q, function (snap) {
+      notes = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      // same date -> newest first
+      notes.sort(function (a, b) {
+        return a.date < b.date ? 1 : a.date > b.date ? -1 : (b.createdAt || 0) - (a.createdAt || 0);
+      });
+      byId = new Map(notes.map(function (n) { return [n.id, n]; }));
+      loaded = true; listError = null;
+      renderList();
+      if (editingId && filledFor !== editingId) openEditor(editingId);
+    }, function (err) {
+      console.error("Notes: load failed", err);
+      listError = err;
+      renderList();
+      if (editingId && filledFor !== editingId) openEditor(editingId);
+    });
+  }
+
+  /* ---------- create ---------- */
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    const date = newDate.value, title = newTitle.value.trim();
+    if (!date || !title) { newError.textContent = "Both the date and the title are required."; return; }
+    if (!uid || !db) { newError.textContent = "Still connecting to the cloud. Try again in a moment."; return; }
+    const r = doc(col());                       // id is generated here, so we can open the editor straight away
+    const now = Date.now();
+    const data = { title: title, date: date, body: "", createdAt: now, updatedAt: now };
+    byId.set(r.id, Object.assign({ id: r.id }, data));
+    setDoc(r, data).catch(function (err) { console.error("Notes: create failed", err); showBanner(explain(err)); });
+    newTitle.value = ""; newError.textContent = ""; showBanner("");
+    location.hash = "#notes/" + encodeURIComponent(r.id);
+  });
+  [newDate, newTitle].forEach(function (el) { el.addEventListener("input", function () { newError.textContent = ""; }); });
+
+  /* ---------- editor (autosaves a moment after you stop typing) ---------- */
+  function setEdState(msg) { edState.textContent = msg; edState.hidden = !msg; edBox.hidden = !!msg; }
+
+  function openEditor(id) {
+    editingId = id;
+    listView.hidden = true; editorView.hidden = false;
+    npTitle.textContent = "Note";
+    const n = byId.get(id);
+    if (listError && !n) { setEdState(explain(listError)); return; }
+    if (!n && (!uid || !loaded)) { setEdState("Loading note\u2026"); return; }
+    if (!n) { setEdState("This note doesn't exist. It may have been deleted."); return; }
+    setEdState("");
+    edDate.value = n.date || ""; edTitle.value = n.title || ""; edBody.value = n.body || "";
+    filledFor = id; dirty = false; setStatus("Saved");
+  }
+
+  function scheduleSave() {
+    if (!editingId || filledFor !== editingId) return;
+    dirty = true; setStatus("Unsaved changes\u2026");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flushSave, 700);
+  }
+
+  async function flushSave() {
+    clearTimeout(saveTimer); saveTimer = null;
+    if (!dirty || !editingId || filledFor !== editingId || !uid) return;
+    const id = editingId, title = edTitle.value.trim(), date = edDate.value, body = edBody.value;
+    if (!title || !date) { setStatus("Title and date are required. Not saved yet.", true); return; }
+    dirty = false; setStatus("Saving\u2026");
+    try {
+      await setDoc(ref(id), { title: title, date: date, body: body, updatedAt: Date.now() }, { merge: true });
+      if (!dirty && editingId === id) setStatus("Saved");
+    } catch (err) {
+      console.error("Notes: save failed", err);
+      if (editingId === id) { dirty = true; setStatus("Couldn't save (" + errCode(err) + ")", true); }
+      showBanner(explain(err));
+    }
+  }
+  [edDate, edTitle, edBody].forEach(function (el) { el.addEventListener("input", scheduleSave); });
+  document.addEventListener("visibilitychange", function () { if (document.hidden) flushSave(); });
+  window.addEventListener("pagehide", flushSave);
+
+  delBtn.addEventListener("click", async function () {
+    if (!editingId || !uid) return;
+    const id = editingId, n = byId.get(id);
+    if (!window.confirm('Delete "' + ((n && n.title) || "this note") + '"? This can\'t be undone.')) return;
+    clearTimeout(saveTimer); dirty = false;
+    location.hash = "#notes";
+    try { await deleteDoc(ref(id)); }
+    catch (err) { console.error("Notes: delete failed", err); showBanner(explain(err)); }
+  });
+
+  /* ---------- routing: #notes (list), #notes/<id> (editor), anything else = the game ---------- */
+  function route() {
+    const h = location.hash;
+    const isNotes = h === "#notes" || h.indexOf("#notes/") === 0;
+    if (!isNotes) {
+      flushSave();
+      editingId = null; filledFor = null;
+      page.hidden = true; stage.hidden = false;
+      document.body.classList.remove("notes-open");
+      return;
+    }
+    page.hidden = false; stage.hidden = true;
+    document.body.classList.add("notes-open");
+    const id = h.indexOf("#notes/") === 0 ? decodeURIComponent(h.slice(7)) : null;
+    if (!id) {
+      flushSave();
+      editingId = null; filledFor = null;
+      editorView.hidden = true; listView.hidden = false;
+      npTitle.textContent = "Notes";
+      if (!newDate.value) newDate.value = today();
+      renderList();
+    } else {
+      if (id !== editingId) { flushSave(); filledFor = null; }
+      openEditor(id);
+    }
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener("hashchange", route);
+
+  newDate.value = today();
+  if (auth) onAuthStateChanged(auth, function (user) { if ((user ? user.uid : null) !== uid) subscribe(user); });
+  renderList();
+  route();
 </script>
 
 </body>
