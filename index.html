@@ -304,6 +304,39 @@
     font-size: 13px; font-weight: 600; padding: 7px 12px; cursor: pointer; font-family: var(--font-body);
   }
   .np-danger:hover { background: var(--bad); color: var(--bg-deep); }
+
+  /* ---------- Wrong answers + reports ---------- */
+  @media (min-width: 1000px) { .reports-link { top: 92px; } }
+  .wrong-box { margin: 0 0 22px; }
+  .wrong-head { font-family: var(--font-display); font-size: 17px; margin: 0 0 10px; }
+  .wrong-head span {
+    display: inline-block; min-width: 22px; padding: 1px 8px; margin-left: 6px; border-radius: 100px;
+    background: var(--bg-deep); border: 1px solid var(--panel-line); color: var(--bad); font-size: 13px; text-align: center;
+  }
+  .wrong-empty { color: var(--good); font-size: 14px; margin: 0; }
+  .wrong-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
+  .wrong-item {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap;
+    background: var(--bg-deep); border: 1px solid var(--panel-line); border-left: 3px solid var(--bad);
+    border-radius: 10px; padding: 9px 12px;
+  }
+  .wrong-q { font-family: var(--font-display); font-weight: 600; font-size: 16px; }
+  .wrong-given { color: var(--muted); font-size: 13px; }
+  .save-box { margin: 0 0 14px; }
+  .save-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+  .btn-ghost {
+    background: var(--bg-deep); color: var(--ink); border: 1.5px solid var(--panel-line);
+    font-weight: 600; font-size: 15px; padding: 0 20px; border-radius: 14px; font-family: var(--font-body);
+  }
+  .btn-ghost:hover:not(:disabled) { border-color: var(--accent); }
+  .btn-primary:disabled, .btn-ghost:disabled { opacity: 0.6; cursor: default; }
+  .save-msg { min-height: 20px; margin: 8px 2px 0; font-size: 13.5px; color: var(--muted); }
+  .save-msg.good { color: var(--good); }
+  .save-msg.bad { color: var(--bad); }
+  .save-msg a { color: var(--accent); }
+  .rp-date { color: var(--accent); font-size: 12.5px; font-weight: 600; letter-spacing: .02em; }
+  #rpBox h2 { margin: 2px 0 14px; }
+  #rpBox .summary-stats { margin: 0 0 20px; }
 </style>
 </head>
 <body>
@@ -312,6 +345,10 @@
   <a class="notes-link" href="#notes" id="notesLink">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 13h7M9 17h5"/></svg>
     <span>Notes<small>Write and keep your notes</small></span>
+  </a>
+  <a class="notes-link reports-link" href="#reports" id="reportsLink">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+    <span>Reports<small>Saved rounds and wrong answers</small></span>
   </a>
   <div class="card">
 
@@ -462,6 +499,20 @@
         </div>
       </div>
 
+      <div class="wrong-box">
+        <h3 class="wrong-head">Wrong answers <span id="wrongCount">0</span></h3>
+        <p class="wrong-empty" id="wrongEmpty" hidden></p>
+        <ul class="wrong-list" id="wrongList"></ul>
+      </div>
+
+      <div class="save-box" id="saveBox" hidden>
+        <div class="save-row">
+          <button type="button" class="btn-primary" id="saveReportBtn">Save report</button>
+          <button type="button" class="btn-ghost" id="skipReportBtn">Don't save</button>
+        </div>
+        <p class="save-msg" id="saveMsg" role="status"></p>
+      </div>
+
       <button class="btn-primary" id="playAgainBtn">Play again</button>
     </div>
 
@@ -516,6 +567,34 @@
       </div>
     </div>
     <a class="np-back" href="#notes">&larr; All notes</a>
+  </section>
+</main>
+
+<!-- ===== Reports page (routes: #reports = list, #reports/<id> = one report) ===== -->
+<main class="notes-page" id="reportsPage" hidden>
+  <div class="np-top">
+    <h1 id="rpTitle">Reports</h1>
+    <a class="np-back" href="#">&larr; Back to game</a>
+  </div>
+  <div class="np-banner" id="rpBanner" role="alert" hidden></div>
+
+  <section id="reportsListView">
+    <div class="np-status" id="rpListStatus">Loading your reports&hellip;</div>
+    <ul class="np-list" id="reportsList"></ul>
+  </section>
+
+  <section id="reportDetailView" hidden>
+    <div class="np-status" id="rpState" hidden></div>
+    <div class="np-card" id="rpBox" hidden>
+      <div class="rp-date" id="rpDate"></div>
+      <h2 id="rpHeading"></h2>
+      <div class="summary-stats" id="rpStats"></div>
+      <h3 class="wrong-head">Wrong answers <span id="rpWrongCount">0</span></h3>
+      <p class="wrong-empty" id="rpWrongEmpty" hidden>No wrong answers in this round.</p>
+      <ul class="wrong-list" id="rpWrongList"></ul>
+      <div class="np-foot"><span></span><button type="button" class="np-danger" id="rpDeleteBtn">Delete report</button></div>
+    </div>
+    <a class="np-back" href="#reports">&larr; All reports</a>
   </section>
 </main>
 
@@ -723,6 +802,7 @@
   let pendingAdvanceMs = 0;
 
   let questionQueue = [];
+  let wrongAnswers = [];          // questions answered wrong (or timed out) this round
   let queueIndex = 0;
 
   function refreshStartStats() {
@@ -851,6 +931,7 @@
     streak = 0;
     sessionBestStreak = 0;
     totalAnswerMs = 0;
+    wrongAnswers = [];
     activeRangeKey = lo + "-" + hi;
     paused = false;
     pauseOverlay.classList.remove("show");
@@ -886,6 +967,7 @@
       score = Math.max(0, score + INCORRECT_POINTS);
       incorrectCount += 1;
       streak = 0;
+      wrongAnswers.push({ a: currentA, b: currentB, answer: correctAnswer, given: given });
       if (given === null) {
         feedback.textContent = "Time's up — it's " + correctAnswer + " (" + INCORRECT_POINTS + ")";
       } else {
@@ -984,7 +1066,35 @@
     newBestTimeBadge.style.display = isNewBestTime ? "inline-block" : "none";
     renderTopTimeAvg(topTimesAfter, finalAvgTime, finalAvgTimeSub);
 
+    // Wrong answers on the summary screen, and the round data used by "Save report" (reports script below).
+    const answered = correctCount + incorrectCount;
+    document.getElementById("wrongCount").textContent = wrongAnswers.length;
+    const wrongEmpty = document.getElementById("wrongEmpty");
+    wrongEmpty.textContent = answered ? "No wrong answers. Clean round!" : "No questions were answered.";
+    wrongEmpty.hidden = wrongAnswers.length > 0;
+    renderWrongList(document.getElementById("wrongList"), wrongAnswers);
+    window.dispatchEvent(new CustomEvent("timestables:roundended", { detail: {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),   // one id per round: saving twice can't duplicate
+      range: activeRangeKey, seconds: QUESTION_SECONDS, completed: !!completed,
+      score: score, correct: correctCount, incorrect: incorrectCount,
+      totalQuestions: questionQueue.length, timeMs: completed ? elapsedMs : 0,
+      wrong: wrongAnswers.slice()
+    } }));
+
     refreshStartStats();
+  }
+
+  // Fills a <ul> with "12 × 7 = 84 · You answered 82" rows (also used by the reports page).
+  function renderWrongList(listEl, list) {
+    const frag = document.createDocumentFragment();
+    list.forEach(function (w) {
+      const li = document.createElement("li"); li.className = "wrong-item";
+      const q = document.createElement("span"); q.className = "wrong-q"; q.textContent = w.a + " \u00D7 " + w.b + " = " + w.answer;
+      const g = document.createElement("span"); g.className = "wrong-given";
+      g.textContent = w.given === null ? "Time's up" : "You answered " + w.given;
+      li.appendChild(q); li.appendChild(g); frag.appendChild(li);
+    });
+    listEl.replaceChildren(frag);
   }
 
   /* ---------- pause ---------- */
@@ -1045,6 +1155,7 @@
 
   // Lets the Firebase sync code refresh the game after cloud data is loaded.
   window.timesTablesGame = {
+    renderWrongList: renderWrongList,
     reload: function () {
       highScore = loadNumber(STORAGE_KEY);
       bestStreak = loadNumber(STREAK_KEY);
@@ -1262,7 +1373,25 @@
     } catch (e) {
       if (e.code === "auth/credential-already-in-use") {
         // This Google account already has saved data: switch to it (local scores get merged in).
-        await signInWithCredential(auth, GoogleAuthProvider.credentialFromError(e));
+        // Notes and reports live under the account id, so they are copied across first (nothing is deleted).
+        const mig = window.accountMigration;
+        let carry = [];
+        try { carry = mig ? await mig.exportAll() : []; }
+        catch (err) {
+          console.error("Export failed", err);
+          alert("Couldn't read your current notes and reports, so sign-in was cancelled to keep them safe. Please try again.");
+          return;
+        }
+        const res = await signInWithCredential(auth, GoogleAuthProvider.credentialFromError(e));
+        if (carry.length) {
+          try {
+            const moved = await mig.importAll(carry, res.user.uid);
+            if (moved) alert("Moved " + moved + " note/report" + (moved === 1 ? "" : "s") + " to your Google account.");
+          } catch (err) {
+            console.error("Import failed", err);
+            alert("Signed in, but your earlier notes/reports couldn't be copied over. They are still safe in the old anonymous account.");
+          }
+        }
       } else {
         console.error(e);
         alert("Google sign-in failed: " + (e.code || e.message));
@@ -1493,6 +1622,268 @@
   window.addEventListener("hashchange", route);
 
   newDate.value = today();
+  if (auth) onAuthStateChanged(auth, function (user) { if ((user ? user.uid : null) !== uid) subscribe(user); });
+  renderList();
+  route();
+</script>
+
+<!-- ===== Reports logic =====
+     Data:  users/{uid}/reports/{reportId} = { range, seconds, completed, score, correct, incorrect,
+            totalQuestions, timeMs, wrong: [{a, b, answer, given}], savedAt }
+     A report is only created when you press "Save report" on the summary screen. savedAt is the server's
+     clock at that moment. Reports can't be edited after saving (only deleted).
+
+     DATA-SAFETY RULES (keep these if you change the code):
+       1. Every write goes through check(): types, ranges and consistency (incorrect === wrong.length,
+          answer === a * b) are verified before anything is sent.
+       2. The report id is created when the round ends, so pressing Save twice can never create duplicates.
+       3. "Saved" is shown only after Firestore confirms the write.
+       4. Reports are create-only in the security rules (see firestore.rules).
+
+     This script must stay AFTER the notes script: both react to the URL hash, and this one runs last. -->
+<script type="module">
+  import { getApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getFirestore, collection, doc, setDoc, deleteDoc, getDocs, writeBatch, onSnapshot, query, orderBy, limit, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+  /* ---------- settings (change limits here and in firestore.rules) ---------- */
+  const REPORTS = { collection: "reports", listLimit: 200, maxWrong: 500 };
+
+  const $ = function (id) { return document.getElementById(id); };
+  const stage = document.querySelector(".stage"), page = $("reportsPage"), notesPage = $("notesPage");
+  const listView = $("reportsListView"), detailView = $("reportDetailView");
+  const listEl = $("reportsList"), listStatus = $("rpListStatus"), banner = $("rpBanner"), heading = $("rpTitle");
+  const rpState = $("rpState"), rpBox = $("rpBox"), rpDate = $("rpDate"), rpHeading = $("rpHeading"), rpStats = $("rpStats");
+  const rpWrongCount = $("rpWrongCount"), rpWrongEmpty = $("rpWrongEmpty"), rpWrongList = $("rpWrongList"), rpDelete = $("rpDeleteBtn");
+  const saveBox = $("saveBox"), saveBtn = $("saveReportBtn"), skipBtn = $("skipReportBtn"), saveMsg = $("saveMsg");
+
+  let db = null, auth = null;
+  try { const app = getApp(); db = getFirestore(app); auth = getAuth(app); }
+  catch (e) { console.error("Reports: Firebase not ready", e); }
+
+  let uid = null, unsub = null, reports = [], byId = new Map(), loaded = false, listError = null, viewingId = null;
+
+  /* ---------- helpers ---------- */
+  function col(forUid, name) { return collection(db, "users", forUid || uid, name || REPORTS.collection); }
+  function errCode(e) { return e && e.code ? String(e.code).replace(/^firestore\//, "") : (e && e.message) || "error"; }
+  function explain(e) {
+    return errCode(e) === "permission-denied"
+      ? "Firestore refused this (permission-denied). Check the rules for users/{uid}/reports (see firestore.rules)."
+      : "Something went wrong (" + errCode(e) + ").";
+  }
+  function showBanner(msg) { banner.textContent = msg || ""; banner.hidden = !msg; }
+  function ms(ts) { return ts && typeof ts.toMillis === "function" ? ts.toMillis() : 0; }
+  function when(ts) {
+    const t = ms(ts);
+    return t ? new Date(t).toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }) : "Saving\u2026";
+  }
+  function titleOf(r) { return "Times tables " + String(r.range).replace("-", "\u2013") + " \u00B7 " + r.seconds + "s per question"; }
+  function formatTime(t) {
+    if (!t || t <= 0) return "\u2013";
+    const s = t / 1000;
+    if (s < 60) return s.toFixed(1) + "s";
+    const m = Math.floor(s / 60), r = s - m * 60;
+    return m + ":" + (r < 10 ? "0" : "") + r.toFixed(1);
+  }
+
+  // THE ONE validation gate. Returns { value } (clean, ready to store) or { error }.
+  function check(r) {
+    const int = function (v, min, max) { return Number.isInteger(v) && v >= min && v <= max; };
+    if (!r || typeof r !== "object") return { error: "No round data." };
+    if (typeof r.range !== "string" || !/^\d{1,2}-\d{1,2}$/.test(r.range)) return { error: "Bad range." };
+    if (!int(r.seconds, 1, 600)) return { error: "Bad seconds per question." };
+    if (typeof r.completed !== "boolean") return { error: "Bad completed flag." };
+    if (!int(r.score, 0, 100000) || !int(r.correct, 0, 1000) || !int(r.incorrect, 0, 1000) ||
+        !int(r.totalQuestions, 0, 1000) || !int(r.timeMs, 0, 86400000)) return { error: "Bad numbers." };
+    if (!Array.isArray(r.wrong) || r.wrong.length > REPORTS.maxWrong) return { error: "Bad wrong-answer list." };
+    if (r.wrong.length !== r.incorrect) return { error: "Wrong-answer list doesn't match the incorrect count." };
+    if (r.correct + r.incorrect > r.totalQuestions) return { error: "More answers than questions." };
+    const wrong = [];
+    for (let i = 0; i < r.wrong.length; i++) {
+      const w = r.wrong[i];
+      if (!w || !int(w.a, 1, 99) || !int(w.b, 1, 99) || w.answer !== w.a * w.b) return { error: "A wrong answer is invalid." };
+      if (w.given !== null && !int(w.given, -1e9, 1e9)) return { error: "A wrong answer is invalid." };
+      wrong.push({ a: w.a, b: w.b, answer: w.answer, given: w.given });
+    }
+    return { value: {
+      range: r.range, seconds: r.seconds, completed: r.completed, score: r.score, correct: r.correct,
+      incorrect: r.incorrect, totalQuestions: r.totalQuestions, timeMs: r.timeMs, wrong: wrong
+    } };
+  }
+
+  /* ---------- save / don't save (summary screen) ---------- */
+  let round = null, saving = false;
+
+  function setMsg(text, kind) {
+    saveMsg.className = "save-msg" + (kind ? " " + kind : "");
+    saveMsg.textContent = text;
+  }
+
+  window.addEventListener("timestables:roundended", function (e) {
+    round = e.detail; saving = false;
+    saveBtn.disabled = false; skipBtn.disabled = false; saveBtn.textContent = "Save report";
+    setMsg("");
+    saveBox.hidden = !(round && round.correct + round.incorrect > 0);   // nothing to report if nothing was answered
+  });
+
+  saveBtn.addEventListener("click", async function () {
+    if (!round || saving) return;
+    const r = check(round);
+    if (r.error) { setMsg("Couldn't save: " + r.error, "bad"); return; }
+    if (!db || !uid) { setMsg("Still connecting to the cloud. Try again in a moment.", "bad"); return; }
+    saving = true; saveBtn.disabled = true; skipBtn.disabled = true; setMsg("Saving\u2026");
+    try {
+      // same id every time for this round, so a second click can't make a second report
+      await setDoc(doc(db, "users", uid, REPORTS.collection, round.id), Object.assign({}, r.value, { savedAt: serverTimestamp() }));
+      saveBtn.textContent = "Saved \u2713";
+      saveMsg.className = "save-msg good";
+      saveMsg.textContent = "Report saved. ";
+      const a = document.createElement("a"); a.href = "#reports"; a.textContent = "View reports";
+      saveMsg.appendChild(a);
+    } catch (err) {
+      console.error("Reports: save failed", err);
+      saving = false; saveBtn.disabled = false; skipBtn.disabled = false;
+      setMsg("The report was not saved. " + explain(err), "bad");
+    }
+  });
+
+  skipBtn.addEventListener("click", function () {
+    if (saving) return;
+    round = null; saveBtn.disabled = true; skipBtn.disabled = true;
+    setMsg("Report not saved.");
+  });
+
+  /* ---------- list ---------- */
+  function renderList() {
+    let msg = "";
+    if (!db) msg = "Reports couldn't connect to Firebase.";
+    else if (listError) msg = explain(listError);
+    else if (!uid) msg = "Connecting to the cloud\u2026";
+    else if (!loaded) msg = "Loading your reports\u2026";
+    else if (!reports.length) msg = "No reports yet. Finish a round and press \u201CSave report\u201D.";
+    else if (reports.length >= REPORTS.listLimit) msg = "Showing your " + REPORTS.listLimit + " most recent reports.";
+    listStatus.textContent = msg; listStatus.hidden = !msg;
+
+    const frag = document.createDocumentFragment();
+    reports.forEach(function (r) {
+      const li = document.createElement("li");
+      const a = document.createElement("a");
+      a.className = "np-item"; a.href = "#reports/" + encodeURIComponent(r.id);
+      const d = document.createElement("span"); d.className = "np-date"; d.textContent = when(r.savedAt);
+      const t = document.createElement("span"); t.className = "np-title"; t.textContent = titleOf(r);
+      const p = document.createElement("span"); p.className = "np-preview";
+      p.textContent = "Score " + r.score + " \u00B7 " + r.incorrect + " wrong \u00B7 " + r.correct + " correct" + (r.completed ? "" : " \u00B7 ended early");
+      a.appendChild(d); a.appendChild(t); a.appendChild(p);
+      li.appendChild(a); frag.appendChild(li);
+    });
+    listEl.replaceChildren(frag);
+  }
+
+  function subscribe(user) {
+    if (unsub) { unsub(); unsub = null; }
+    reports = []; byId = new Map(); loaded = false; listError = null;
+    uid = user ? user.uid : null;
+    renderList(); renderDetail();
+    if (!uid || !db) return;
+    const q = query(col(), orderBy("savedAt", "desc"), limit(REPORTS.listLimit));
+    unsub = onSnapshot(q, function (snap) {
+      reports = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data({ serverTimestamps: "estimate" })); });
+      byId = new Map(reports.map(function (r) { return [r.id, r]; }));
+      loaded = true; listError = null;
+      renderList(); renderDetail();
+    }, function (err) {
+      console.error("Reports: load failed", err);
+      listError = err; renderList(); renderDetail();
+    });
+  }
+
+  /* ---------- one report ---------- */
+  function setState(msg) { rpState.textContent = msg; rpState.hidden = !msg; rpBox.hidden = !!msg; }
+  function statBox(label, value) {
+    const box = document.createElement("div"); box.className = "stat-box";
+    const l = document.createElement("div"); l.className = "stat-label"; l.textContent = label;
+    const v = document.createElement("div"); v.className = "stat-value"; v.textContent = value;
+    box.appendChild(l); box.appendChild(v);
+    return box;
+  }
+
+  function renderDetail() {
+    if (!viewingId) return;
+    const r = byId.get(viewingId);
+    if (listError && !r) { setState(explain(listError)); return; }
+    if (!r && (!uid || !loaded)) { setState("Loading report\u2026"); return; }
+    if (!r) { setState("This report doesn't exist. It may have been deleted."); return; }
+    setState("");
+    rpDate.textContent = "Saved " + when(r.savedAt);
+    rpHeading.textContent = titleOf(r);
+    rpStats.replaceChildren(
+      statBox("Score", r.score), statBox("Correct", r.correct), statBox("Incorrect", r.incorrect),
+      statBox("Questions", r.correct + r.incorrect + " of " + r.totalQuestions),
+      statBox("Time taken", r.completed ? formatTime(r.timeMs) : "\u2013"),
+      statBox("Finished", r.completed ? "Full round" : "Ended early")
+    );
+    const wrong = Array.isArray(r.wrong) ? r.wrong : [];
+    rpWrongCount.textContent = wrong.length;
+    rpWrongEmpty.hidden = wrong.length > 0;
+    window.timesTablesGame.renderWrongList(rpWrongList, wrong);
+  }
+
+  rpDelete.addEventListener("click", async function () {
+    if (!viewingId || !uid) return;
+    const id = viewingId, r = byId.get(id);
+    if (!window.confirm('Delete the report "' + (r ? titleOf(r) : "this report") + '"? This can\'t be undone.')) return;
+    location.hash = "#reports";
+    try { await deleteDoc(doc(db, "users", uid, REPORTS.collection, id)); }
+    catch (err) { console.error("Reports: delete failed", err); showBanner("The report was not deleted. " + explain(err)); }
+  });
+
+  /* ---------- routing: #reports (list), #reports/<id> (one report). Other hashes belong to the game/notes. ---------- */
+  function route() {
+    const h = location.hash;
+    if (h !== "#reports" && h.indexOf("#reports/") !== 0) { page.hidden = true; viewingId = null; return; }
+    page.hidden = false; stage.hidden = true; notesPage.hidden = true;
+    document.body.classList.add("notes-open");
+    let id = null;
+    if (h.indexOf("#reports/") === 0) { try { id = decodeURIComponent(h.slice(9)); } catch (e) { id = ""; } }
+    if (id === null) {
+      viewingId = null; detailView.hidden = true; listView.hidden = false; heading.textContent = "Reports"; renderList();
+    } else {
+      viewingId = id; listView.hidden = true; detailView.hidden = false; heading.textContent = "Report"; renderDetail();
+    }
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener("hashchange", route);
+
+  /* ---------- keep notes + reports when switching from an anonymous to an existing Google account ----------
+     Both live under the user's uid, so switching accounts would hide them. The Google sign-in code calls
+     these two functions to copy them across. Nothing is ever deleted from the old account. */
+  const MIGRATE = ["notes", "reports"];
+  window.accountMigration = {
+    exportAll: async function () {
+      if (!db || !uid) return [];
+      const out = [];
+      for (const name of MIGRATE) {
+        (await getDocs(col(uid, name))).docs.forEach(function (d) { out.push({ name: name, id: d.id, data: d.data() }); });
+      }
+      return out;
+    },
+    importAll: async function (items, targetUid) {
+      if (!db || !targetUid || !items.length) return 0;
+      const have = new Set();
+      for (const name of MIGRATE) {
+        (await getDocs(col(targetUid, name))).docs.forEach(function (d) { have.add(name + "/" + d.id); });
+      }
+      const todo = items.filter(function (it) { return !have.has(it.name + "/" + it.id); });
+      for (let i = 0; i < todo.length; i += 400) {
+        const batch = writeBatch(db);
+        todo.slice(i, i + 400).forEach(function (it) { batch.set(doc(db, "users", targetUid, it.name, it.id), it.data); });
+        await batch.commit();
+      }
+      return todo.length;
+    }
+  };
+
   if (auth) onAuthStateChanged(auth, function (user) { if ((user ? user.uid : null) !== uid) subscribe(user); });
   renderList();
   route();
